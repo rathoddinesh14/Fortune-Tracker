@@ -1,4 +1,5 @@
 import React from 'react';
+import axiosInstance from './AxiosInstance';
 import './Tracker.css';
 
 const Tracker: React.FC = () => {
@@ -15,28 +16,66 @@ const Tracker: React.FC = () => {
     // transaction history
     const [transactionHistory, setTransactionHistory] = React.useState<any[]>([]);
 
+    React.useEffect(() => {
+        fetchTransactions();
+    }, []);
+
+    const fetchTransactions = async () => {
+        try {
+            const response = await axiosInstance.get('/expenses');
+            const expenses = response.data;
+            setTransactionHistory(expenses);
+            const totalExp = expenses.reduce((acc: number, curr: any) => acc + curr.amount, 0);
+            setTotalExpense(totalExp);
+        } catch (error) {
+            console.error('Error fetching transactions:', error);
+        }
+        // fetch incomes
+        try {
+            const response = await axiosInstance.get('/incomes');
+            const incomes = response.data;
+            setIncome(incomes);
+            const totalInc = incomes.reduce((acc: number, curr: any) => acc + curr.amount, 0);
+            setTotalIncome(totalInc);
+        } catch (error) {
+            console.error('Error fetching incomes:', error);
+        }
+    };
 
     // add income function
-    const addIncome = (): void => {
-        setIncome([...income, {
-            description: incomeDescription,
-            amount: incomeAmount,
-        }]);
-        setIncomeAmount(0);
-        setIncomeDescription("");
-        setTotalIncome(totalIncome + incomeAmount);
+    const addIncome = async (): Promise<void> => {
+        try {
+            const response = await axiosInstance.post('/incomes', {
+                description: incomeDescription,
+                amount: incomeAmount
+            });
+            const newIncome = response.data;
+            setIncome([...income, newIncome]);
+            setTotalIncome(totalIncome + incomeAmount);
+            setIncomeAmount(0);
+            setIncomeDescription('');
+        } catch (error) {
+            console.error('Error adding income:', error);
+        }
     };
+
     // add expense function
-    const addExpense = (): void => {
-        setTransactionHistory([...transactionHistory, {
-            description: expenseDescription,
-            category: expenseCategory,
-            amount: expenseAmount
-        }]);
-        setTotalExpense(totalExpense + expenseAmount);
-        setExpenseAmount(0);
-        setExpenseDescription("");
-        setExpenseCategory("Housing");
+    const addExpense = async (): Promise<void> => {
+        try {
+            const response = await axiosInstance.post('/expenses', {
+                description: expenseDescription,
+                category: expenseCategory,
+                amount: expenseAmount
+            });
+            const newExpense = response.data;
+            setTransactionHistory([...transactionHistory, newExpense]);
+            setTotalExpense(totalExpense + expenseAmount);
+            setExpenseAmount(0);
+            setExpenseDescription('');
+            setExpenseCategory('Housing');
+        } catch (error) {
+            console.error('Error adding expense:', error);
+        }
     };
     const clearAll = (): void => {
         setIncome([]);
@@ -53,7 +92,7 @@ const Tracker: React.FC = () => {
                     <h2>Income</h2>
                     <div className="input-group">
                         <label htmlFor="income-description">Description</label>
-                        <input type="text" id="income-description" placeholder="e.g. Salary" 
+                        <input type="text" id="income-description" placeholder="e.g. Salary"
                             value={incomeDescription} onChange={(e) => setIncomeDescription(e.target.value)} />
                     </div>
                     <div className="input-group">
@@ -70,7 +109,7 @@ const Tracker: React.FC = () => {
                     <div className="input-group">
                         <label htmlFor="expense-description">Description</label>
                         <input type="text" id="expense-description" placeholder="e.g. Rent" value={expenseDescription}
-                            onChange={(e) => setExpenseDescription(e.target.value)}/>
+                            onChange={(e) => setExpenseDescription(e.target.value)} />
                     </div>
                     <div className="input-group">
                         <label htmlFor="expense-category">Category</label>
@@ -122,7 +161,7 @@ const Tracker: React.FC = () => {
                     <h2>Budget Summary</h2>
                     <p>Total Income: ₦<span id="total-income">{totalIncome}</span></p>
                     <p>Total Expenses: ₦<span id="total-expenses">{totalExpense}</span></p>
-                    <p>Balance: ₦<span id="balance">{totalIncome-totalExpense}</span></p>
+                    <p>Balance: ₦<span id="balance">{totalIncome - totalExpense}</span></p>
                 </div>
                 <div className="clear-button-group">
                     <button onClick={() => clearAll()}>Clear All</button>
